@@ -1,0 +1,17 @@
+services:
+  backend:
+    build: ./backend
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+      - BOX_CONFIG_DIR=/app/config
+    volumes:
+      - ./config:/app/config:ro
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend

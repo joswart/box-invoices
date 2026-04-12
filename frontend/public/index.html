@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZUGFeRD / Factur-X Invoice Viewer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Upload screen -->
+  <div id="upload-screen">
+    <div class="upload-card">
+      <div class="logo">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="48" height="48" rx="12" fill="#2563EB"/>
+          <path d="M14 34V16a2 2 0 012-2h12l6 6v14a2 2 0 01-2 2H16a2 2 0 01-2-2z" stroke="white" stroke-width="2" fill="none"/>
+          <path d="M28 14v6h6" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          <path d="M19 27h10M19 31h6" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h1>ZUGFeRD / Factur-X Viewer</h1>
+      <p class="subtitle">Upload a PDF invoice to extract and display its embedded EN16931 XML</p>
+
+      <div
+        id="drop-zone"
+        class="drop-zone"
+        role="button"
+        tabindex="0"
+        aria-label="Upload PDF"
+      >
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 28V12M20 12l-6 6M20 12l6 6" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M8 30h24" stroke="#6B7280" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <p>Drag &amp; drop a PDF here, or <span class="link-text">click to browse</span></p>
+        <p class="hint">Supports ZUGFeRD, Factur-X, XRechnung (up to 50 MB)</p>
+        <input type="file" id="file-input" accept=".pdf,application/pdf" />
+      </div>
+
+      <div id="error-banner" class="error-banner hidden" role="alert">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="10" cy="10" r="9" stroke="#DC2626" stroke-width="2"/>
+          <path d="M10 6v4M10 13h.01" stroke="#DC2626" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span id="error-text"></span>
+      </div>
+
+      <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <span>Extracting XML&hellip;</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Invoice viewer screen -->
+  <div id="viewer-screen" class="hidden">
+    <header class="viewer-header">
+      <button id="back-btn" class="back-btn" aria-label="Upload another file">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 4l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Upload another file
+      </button>
+      <div class="header-center">
+        <span id="header-filename" class="header-filename"></span>
+        <span id="header-badge" class="badge"></span>
+      </div>
+      <button id="download-xml-btn" class="dl-btn">Download XML</button>
+    </header>
+
+    <div class="viewer-body">
+      <!-- Left: PDF -->
+      <div class="panel pdf-panel">
+        <div class="panel-label">PDF Document</div>
+        <iframe id="pdf-frame" title="Invoice PDF"></iframe>
+      </div>
+
+      <!-- Divider -->
+      <div class="divider"></div>
+
+      <!-- Right: Invoice data -->
+      <div class="panel invoice-panel">
+        <div class="panel-label">Invoice Data <span id="xml-filename" class="xml-label"></span></div>
+        <div id="invoice-content" class="invoice-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

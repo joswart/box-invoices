@@ -1,0 +1,9 @@
+# Box JWT config files — contain private keys, never commit
+config/*.json
+
+# Node
+node_modules/
+dist/
+
+# OS
+.DS_Store
