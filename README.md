@@ -1,17 +1,29 @@
 # ZUGFeRD / Factur-X Invoice Processor
 
-A containerised web application and REST API for working with ZUGFeRD 2.x, Factur-X, and XRechnung invoice PDFs.
+A containerised web application and REST API for working with structured e-invoice PDFs and XML files. Supports all major European formats.
+
+## Supported formats
+
+| Format | Standard | Profiles |
+|---|---|---|
+| **ZUGFeRD 2.x / Factur-X** | CII (UN/CEFACT CrossIndustryInvoice) | MINIMUM · BASIC WL · BASIC · EN 16931 · EXTENDED |
+| **XRechnung** | CII or UBL 2.1 | XRechnung |
+| **PEPPOL BIS 3.0** | UBL 2.1 Invoice / CreditNote | All CIUS profiles (RO, PT, HR, RS, SK, …) |
+| **FacturaE 3.2.x** | Spain national format | 3.2 / 3.2.1 / 3.2.2 |
+| **KSeF** | Poland national e-invoice | FA(2) · FA(3) |
+
+PDFs with embedded XML and standalone XML files are both accepted.
+
+---
 
 ## Features
 
 | Capability | Details |
 |---|---|
-| **Viewer** | Browser UI — drag-and-drop a PDF, see the rendered invoice alongside the original document |
-| **EN16931 Validation** | Checks XMP metadata, `AFRelationship`, XML well-formedness, and required element presence |
-| **Metadata extraction** | Parses all 60+ EN16931 fields from both CII (ZUGFeRD/Factur-X) and UBL (XRechnung) |
-| **Box integration** | `POST /process` is called from Box automation with a file ID; downloads the existing PDF from Box, maps invoice fields to a Box metadata template, and optionally moves the file to a success or error folder |
-
-Supported profiles: MINIMUM · BASIC WL · BASIC · EN 16931 · EXTENDED · XRechnung
+| **Viewer** | Browser UI — drag-and-drop a PDF or XML file, see the rendered invoice alongside the original document |
+| **EN16931 Validation** | Checks XMP metadata, `AFRelationship`, XML well-formedness, and required element presence per format |
+| **Metadata extraction** | Parses 60+ EN16931 fields from CII, UBL, FacturaE, and KSeF documents |
+| **Box integration** | `POST /process` is called from Box automation with a file ID; downloads the PDF from Box, maps invoice fields to a Box metadata template, and optionally moves the file to a success or error folder |
 
 ---
 
@@ -30,11 +42,13 @@ browser / API client
   ├── POST /upload   — viewer: returns parsed invoice JSON + PDF base64
   └── POST /process  — Box automation: download → extract → map → apply metadata
         │
-        ├── box-node-sdk (JWT auth)    — downloads existing file from Box
-        ├── pdfdetach (poppler-utils)  — extracts embedded XML
-        ├── invoice-extractor          — parses CII / UBL XML
-        ├── metadata-mapper            — maps fields to Box template
-        └── box-node-sdk               — applies metadata + optional folder routing
+        ├── box-node-sdk (JWT auth)        — downloads existing file from Box
+        ├── pdfdetach (poppler-utils)      — extracts embedded XML from PDF
+        ├── validator.ts                   — XMP, AFRelationship, XML structure checks
+        ├── invoice-extractor.ts           — CII / UBL field extraction
+        ├── invoice-extractor-national.ts  — FacturaE / KSeF field extraction
+        ├── metadata-mapper.ts             — Invoice → Box metadata object
+        └── box-node-sdk                   — applies metadata + optional folder routing
 ```
 
 ---
@@ -75,9 +89,9 @@ The viewer is available at `http://localhost:8080`.
 ### Browser viewer
 
 1. Open `http://localhost:8080` in your browser.
-2. Drag a ZUGFeRD / Factur-X / XRechnung PDF onto the drop zone, or click to browse.
+2. Drag a ZUGFeRD / Factur-X / XRechnung PDF or a standalone XML file onto the drop zone, or click to browse.
 3. The viewer splits into two panes:
-   - **Left** — the original PDF rendered inline.
+   - **Left** — the original PDF rendered inline (empty for standalone XML uploads).
    - **Right** — parsed invoice data: EN16931 validation results, document header, seller/buyer, line items, tax breakdown, and totals. A **Download XML** button saves the embedded invoice XML.
 4. Click **Upload another file** to go back.
 
@@ -93,8 +107,8 @@ The webservice endpoint is designed to be called from **Box automation** using B
 
 1. Receives a Box file ID and connection parameters as a JSON (or form-encoded) POST.
 2. Downloads the PDF from Box using the service account client.
-3. Extracts the embedded ZUGFeRD / Factur-X / XRechnung XML using `pdfdetach`.
-4. Parses all EN16931 invoice fields (CII and UBL formats are both supported).
+3. Extracts the embedded invoice XML using `pdfdetach`.
+4. Parses all invoice fields (CII, UBL, FacturaE, and KSeF formats are supported).
 5. Maps the parsed fields to a Box metadata template object, converting dates to RFC 3339 and resolving enum codes to their full option keys.
 6. Applies the metadata to the existing Box file.
 7. Optionally moves the file to a routing folder:
@@ -102,15 +116,7 @@ The webservice endpoint is designed to be called from **Box automation** using B
    - **Extraction failed** (no XML, unsupported format, parse error) → moved to `errorFolder` (if provided), no metadata.
 8. Returns a JSON response describing the outcome.
 
-**curl example — success path:**
-
-```bash
-curl -X POST http://localhost:8080/api/process \
-  -H "Content-Type: application/json" \
-  -d '{"boxFileId":"1234567890","configKey":"mycompany","targetFolder":"123456789","errorFolder":"987654321"}'
-```
-
-**curl example — custom template key:**
+**curl example:**
 
 ```bash
 curl -X POST http://localhost:8080/api/process \
@@ -119,8 +125,7 @@ curl -X POST http://localhost:8080/api/process \
     "boxFileId": "1234567890",
     "configKey": "mycompany",
     "targetFolder": "123456789",
-    "errorFolder": "987654321",
-    "metadataTemplateKey": "zugferd_invoice"
+    "errorFolder": "987654321"
   }'
 ```
 
@@ -140,29 +145,10 @@ const response = await fetch('http://localhost:8080/api/process', {
 const result = await response.json();
 
 if (result.success) {
-  console.log('Metadata applied to Box file', result.boxFileId, 'with', Object.keys(result.metadata).length, 'fields');
+  console.log('Metadata applied:', result.invoiceNumber, '—', Object.keys(result.metadata).length, 'fields');
 } else {
   console.warn('Processing failed:', result.error);
 }
-```
-
-**Python / requests example:**
-
-```python
-import requests
-
-response = requests.post(
-    'http://localhost:8080/api/process',
-    json={
-        'boxFileId': '1234567890',
-        'configKey': 'mycompany',
-        'targetFolder': '123456789',
-        'errorFolder': '987654321',
-    },
-)
-
-result = response.json()
-print(result)
 ```
 
 ---
@@ -198,13 +184,12 @@ Called from Box automation when a file event fires. Downloads the existing PDF f
     "invoiceTypeCode": "380 - Commercial Invoice",
     "zugferdProfile": "EN16931",
     "grandTotalAmount": 119.00,
-    "lineItems": "[{\"lineId\":\"1\", ...}]",
-    "..."
+    "lineItems": "[{\"lineId\":\"1\", ...}]"
   }
 }
 ```
 
-`folderId` is omitted from the response when no `targetFolder` was supplied.
+`folderId` is omitted when no `targetFolder` was supplied.
 
 **Error response** `200` — file moved to `errorFolder` (if provided)
 
@@ -227,29 +212,37 @@ Called from Box automation when a file event fires. Downloads the existing PDF f
 }
 ```
 
-**Example — curl**
-
-```bash
-curl -X POST http://localhost:8080/api/process \
-  -H "Content-Type: application/json" \
-  -d '{
-    "boxFileId": "1234567890",
-    "configKey": "mycompany",
-    "targetFolder": "987654321",
-    "errorFolder": "111111111",
-    "metadataTemplateKey": "zugferd_invoice"
-  }'
-```
-
 ---
 
 ### `POST /api/upload`
 
-Viewer endpoint. Extracts the XML, validates it, and returns everything needed to render the viewer UI. Does **not** interact with Box.
+Viewer endpoint. Accepts a PDF (with embedded XML) or a standalone XML file. Extracts the XML, validates it, and returns everything needed to render the viewer UI. Does **not** interact with Box.
 
-**Request** — `multipart/form-data`: `pdf` file
+**Request** — `multipart/form-data`: field named `pdf` (accepts `.pdf` and `.xml` files, max 50 MB)
 
-**Response** — see `UploadSuccess` / `UploadError` in [server.ts](backend/src/server.ts)
+**Success response** `200`
+
+```json
+{
+  "success": true,
+  "pdfBase64": "<base64-encoded PDF, empty string for standalone XML uploads>",
+  "xml": "<raw invoice XML>",
+  "attachmentName": "factur-x.xml",
+  "validation": {
+    "xmp": { "documentType": "INVOICE", "fileName": "factur-x.xml", "version": "1.0", "conformanceLevel": "EN 16931", "namespace": "urn:factur-x:..." },
+    "xmpFileNameMatch": true,
+    "afRelationship": "Alternative",
+    "afRelationshipValid": true,
+    "wellFormed": true,
+    "parseErrors": [],
+    "structureErrors": [],
+    "profileId": "urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:en16931",
+    "valid": true
+  }
+}
+```
+
+For standalone XML uploads, `xmp`, `xmpFileNameMatch`, and `afRelationship` are always `null` / `false`.
 
 ---
 
@@ -380,60 +373,32 @@ Line items are serialised as a JSON array in the `lineItems` string field:
 
 ---
 
-## Field mapping
-
-### CII (ZUGFeRD / Factur-X)
-
-| Template field | CII XPath |
-|---|---|
-| `invoiceNumber` | `ExchangedDocument/ID` |
-| `invoiceDate` | `ExchangedDocument/IssueDateTime/DateTimeString` |
-| `typeCode` | `ExchangedDocument/TypeCode` |
-| `profileUri` | `ExchangedDocumentContext/GuidelineSpecifiedDocumentContextParameter/ID` |
-| `notes` | `ExchangedDocument/IncludedNote/Content` |
-| `buyerOrderReference` | `ApplicableHeaderTradeAgreement/BuyerOrderReferencedDocument/IssuerAssignedID` |
-| `sellerOrderReference` | `ApplicableHeaderTradeAgreement/SellerOrderReferencedDocument/IssuerAssignedID` |
-| `contractReference` | `ApplicableHeaderTradeAgreement/ContractReferencedDocument/IssuerAssignedID` |
-| `projectReference` | `ApplicableHeaderTradeAgreement/SpecifiedProcuringProject/ID` |
-| `deliveryNoteReference` | `AdditionalReferencedDocument[TypeCode=916]/IssuerAssignedID` |
-| `accountingReference` | `ReceivableSpecifiedTradeAccountingAccount/ID` |
-| `referencedInvoiceNumber` | `InvoiceReferencedDocument/IssuerAssignedID` |
-| `deliveryDate` | `ActualDeliverySupplyChainEvent/OccurrenceDateTime/DateTimeString` |
-| `dueDate` | `SpecifiedTradePaymentTerms/DueDateDateTime/DateTimeString` |
-| `paymentMeansCode` | `SpecifiedTradeSettlementPaymentMeans/TypeCode` |
-| `iban` | `PayeePartyCreditorFinancialAccount/IBANID` |
-| `bic` | `PayeeSpecifiedCreditorFinancialInstitution/BICID` |
-| Seller address | `SellerTradeParty/PostalTradeAddress` |
-| Seller contact | `SellerTradeParty/DefinedTradeContact` |
-| Seller VAT ID | `SpecifiedTaxRegistration[schemeID=VA]/ID` |
-| Seller tax number | `SpecifiedTaxRegistration[schemeID=FC]/ID` |
-
-### UBL (XRechnung)
-
-Equivalent fields are extracted from `AccountingSupplierParty`, `AccountingCustomerParty`, `PaymentMeans`, `LegalMonetaryTotal`, `TaxSubtotal`, `InvoiceLine`, etc.
-
----
-
 ## Project structure
 
 ```
 ZUGFeRD/
-├── config/                        ← Box JWT config files (not committed)
+├── config/                                  ← Box JWT config files (not committed)
 │   └── <configKey>.json
 ├── backend/
 │   ├── src/
-│   │   ├── server.ts              ← Express app, /process and /upload routes
-│   │   ├── invoice-extractor.ts   ← CII + UBL field extraction
-│   │   ├── metadata-mapper.ts     ← Invoice → Box metadata object
-│   │   └── box-client.ts          ← Box SDK wrapper (JWT auth, download, move, metadata)
+│   │   ├── server.ts                        ← Express app, /process and /upload routes
+│   │   ├── validator.ts                     ← XMP, AFRelationship, XML structure validation
+│   │   ├── invoice-extractor-types.ts       ← Shared types and XML helpers
+│   │   ├── invoice-extractor.ts             ← CII + UBL field extraction
+│   │   ├── invoice-extractor-national.ts    ← FacturaE (Spain) + KSeF (Poland) extraction
+│   │   ├── metadata-mapper.ts               ← Invoice → Box metadata object
+│   │   └── box-client.ts                    ← Box SDK wrapper (JWT auth, download, move, metadata)
 │   ├── Dockerfile
 │   ├── package.json
 │   └── tsconfig.json
 ├── frontend/
-│   ├── src/app.ts                 ← Browser viewer (parse + render invoice)
-│   ├── public/                    ← index.html, style.css
+│   ├── src/
+│   │   ├── app.ts                           ← Browser viewer entry point
+│   │   ├── invoice-parsers.ts               ← Types and response parsing
+│   │   └── invoice-renderer.ts              ← DOM rendering of parsed invoice data
+│   ├── public/                              ← index.html, style.css
 │   ├── Dockerfile
-│   └── nginx.conf                 ← Proxies /api/* → backend:3000
+│   └── nginx.conf                           ← Proxies /api/* → backend:3000
 ├── docker-compose.yml
 └── README.md
 ```
