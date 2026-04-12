@@ -31,17 +31,50 @@ const INVOICE_TYPE_MAP: Record<string, string> = {
   '389': '389 - Self-Billed Invoice',
 };
 
-/** Map profile URI fragment to Box enum option key */
+/** Map profile URI / code to Box enum option key */
 function resolveProfile(uri: string): string | undefined {
   if (!uri) return undefined;
   const lower = uri.toLowerCase();
-  // Order matters: check more specific patterns first
+
+  // ZUGFeRD / Factur-X / XRechnung (most specific first)
   if (lower.includes('xrechnung')) return 'XRECHNUNG';
   if (lower.includes('extended')) return 'EXTENDED';
-  if (lower.includes('en16931')) return 'EN16931';
+  if (lower.includes('en16931') && !lower.includes('cen.eu')) return 'EN16931';
   if (lower.includes('basicwl') || lower.includes('basic-wl') || lower.includes('basic_wl')) return 'BASIC WL';
-  if (lower.includes('basic')) return 'BASIC';
+  if (lower.includes('basic') && !lower.includes('peppol')) return 'BASIC';
   if (lower.includes('minimum')) return 'MINIMUM';
+
+  // PEPPOL BIS 3.0 — country-specific flavours before the generic catch-all
+  if (lower.includes('peppol.eu') || lower.includes('fdc:peppol')) {
+    if (lower.includes('aunz') || lower.includes('au-nz')) return 'PEPPOL BIS 3.0 (AU/NZ)';
+    if (lower.includes('sg') || lower.includes('singapore'))    return 'PEPPOL BIS 3.0 (SG)';
+    if (lower.includes('japan') || lower.includes(':jp:'))      return 'PEPPOL BIS 3.0 (JP)';
+    return 'PEPPOL BIS 3.0';
+  }
+
+  // National CIUS / extension profiles derived from EN16931
+  if (lower.includes('cen.eu:en16931')) {
+    if (lower.includes(':ro') || lower.includes('ro-cius'))  return 'RO-CIUS';
+    if (lower.includes(':pt') || lower.includes('pt-cius'))  return 'PT-CIUS';
+    if (lower.includes(':hr') || lower.includes('hr-cius') || lower.includes('ciiur')) return 'HR-CIUS';
+    if (lower.includes(':rs') || lower.includes('rs-cius') || lower.includes('efaktura')) return 'RS-CIUS';
+    if (lower.includes(':sk') || lower.includes('sk-cius') || lower.includes('is.efa')) return 'SK-CIUS';
+    if (lower.includes(':dk') || lower.includes('oioubl'))   return 'DK-OIOUBL';
+    return 'EN16931';
+  }
+
+  // FacturaE (Spain) — URI set by extractFacturaE: urn:facturae:3.2.x
+  if (lower.includes('facturae')) return 'FACTURAE';
+
+  // KSeF (Poland) — URI set by extractKSeF: urn:ksef.mf.gov.pl:FA(2) / FA(3)
+  if (lower.includes('ksef')) {
+    return lower.includes('fa(3)') || lower.includes('fa%283%29') ? 'KSEF FA(3)' : 'KSEF FA(2)';
+  }
+  // KSeF profile stored as the raw KodFormularza value ("FA (2)", "FA (3)")
+  if (uri.startsWith('FA (')) {
+    return uri.includes('(3)') ? 'KSEF FA(3)' : 'KSEF FA(2)';
+  }
+
   return undefined;
 }
 

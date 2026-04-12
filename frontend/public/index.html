@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ZUGFeRD / Factur-X Invoice Viewer</title>
+  <title>e-Invoice Viewer</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -19,8 +19,8 @@
           <path d="M19 27h10M19 31h6" stroke="white" stroke-width="2" stroke-linecap="round"/>
         </svg>
       </div>
-      <h1>ZUGFeRD / Factur-X Viewer</h1>
-      <p class="subtitle">Upload a PDF invoice to extract and display its embedded EN16931 XML</p>
+      <h1>e-Invoice Viewer</h1>
+      <p class="subtitle">Upload an invoice PDF or XML to extract and display its data</p>
 
       <div
         id="drop-zone"
@@ -34,8 +34,8 @@
           <path d="M8 30h24" stroke="#6B7280" stroke-width="2" stroke-linecap="round"/>
         </svg>
         <p>Drag &amp; drop a PDF here, or <span class="link-text">click to browse</span></p>
-        <p class="hint">Supports ZUGFeRD, Factur-X, XRechnung (up to 50 MB)</p>
-        <input type="file" id="file-input" accept=".pdf,application/pdf" />
+        <p class="hint">Supports ZUGFeRD, Factur-X, XRechnung, PEPPOL BIS, FacturaE, KSeF and more — PDF or standalone XML (up to 50 MB)</p>
+        <input type="file" id="file-input" accept=".pdf,application/pdf,.xml,application/xml,text/xml" />
       </div>
 
       <div id="error-banner" class="error-banner hidden" role="alert">
@@ -70,14 +70,14 @@
     </header>
 
     <div class="viewer-body">
-      <!-- Left: PDF -->
-      <div class="panel pdf-panel">
+      <!-- Left: PDF (hidden for standalone XML uploads) -->
+      <div id="pdf-panel" class="panel pdf-panel">
         <div class="panel-label">PDF Document</div>
         <iframe id="pdf-frame" title="Invoice PDF"></iframe>
       </div>
 
       <!-- Divider -->
-      <div class="divider"></div>
+      <div id="viewer-divider" class="divider"></div>
 
       <!-- Right: Invoice data -->
       <div class="panel invoice-panel">
