@@ -41,6 +41,14 @@ export function createBoxClient(configKey: string, asUserId?: string): BoxClient
   console.log(`[box-client] subjectType=${auth.subjectType} subjectId=${auth.subjectId}`);
   const client = new BoxClient({ auth });
 
+  // Log the service account's actual Box identity so you can verify the right
+  // user was added as a collaborator in Box.
+  client.users.getUserMe({ fields: ['id', 'name', 'login'] } satisfies Parameters<typeof client.users.getUserMe>[0]).then((me) => {
+    console.log(`[box-client] service account: id=${me.id} name=${me.name} login=${me.login}`);
+  }).catch((err: unknown) => {
+    console.warn('[box-client] getUserMe failed:', err);
+  });
+
   if (asUserId) {
     return client.withExtraHeaders({ 'as-user': asUserId });
   }
