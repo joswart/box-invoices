@@ -114,6 +114,8 @@ app.post(
     // Support Box webhook payload format: file ID is in body.source.id
     const boxFileId = body.boxFileId ?? (body.source?.type === 'file' ? body.source.id : undefined);
 
+    console.log(`[process] boxFileId=${boxFileId} configKey=${configKey}`);
+
     if (!boxFileId) {
       res.status(400).json({ success: false, error: 'boxFileId is required.' });
       return;
@@ -131,6 +133,7 @@ app.post(
     try {
       boxClient = createBoxClient(configKey);
     } catch (err) {
+      console.error('[process] createBoxClient failed:', err);
       res.status(400).json({ success: false, error: String(err) });
       return;
     }
@@ -141,6 +144,7 @@ app.post(
     try {
       ({ buffer: pdfBuffer, filename } = await downloadFileFromBox(boxClient, boxFileId));
     } catch (err) {
+      console.error('[process] downloadFileFromBox failed:', err);
       res.status(400).json({ success: false, error: `Failed to download file from Box: ${String(err)}`, boxFileId });
       return;
     }
