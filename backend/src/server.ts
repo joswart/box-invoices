@@ -7,6 +7,7 @@ import os from 'os';
 import { promisify } from 'util';
 import { extractInvoice } from './invoice-extractor';
 import { mapToBoxMetadata } from './metadata-mapper';
+import { BoxClient } from 'box-node-sdk';
 import { createBoxClient, downloadFileFromBox, moveFileInBox, applyMetadataToFile } from './box-client';
 import {
   XMPInfo,
@@ -110,6 +111,8 @@ app.post(
     const metadataTemplateKey = body.metadataTemplateKey ?? query.metadataTemplateKey;
     const targetFolder = body.targetFolder ?? query.targetFolder;
     const errorFolder = body.errorFolder ?? query.errorFolder;
+    // Optional: act as this Box user ID (requires "All Enterprise Users" app scope)
+    const asUserId = (body as Record<string, string | undefined>).asUserId ?? query.asUserId;
 
     // Support Box webhook payload format: file ID is in body.source.id
     const boxFileId = body.boxFileId ?? (body.source?.type === 'file' ? body.source.id : undefined);
@@ -128,10 +131,9 @@ app.post(
     const templateKey = metadataTemplateKey ?? 'zugferd_invoice';
 
     // --- Initialise Box client ---
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let boxClient: any;
+    let boxClient: BoxClient;
     try {
-      boxClient = createBoxClient(configKey);
+      boxClient = createBoxClient(configKey, asUserId);
     } catch (err) {
       console.error('[process] createBoxClient failed:', err);
       res.status(400).json({ success: false, error: String(err) });

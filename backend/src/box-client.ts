@@ -15,10 +15,15 @@ const CONFIG_DIR = process.env.BOX_CONFIG_DIR ?? path.join(process.cwd(), 'confi
 // ---------------------------------------------------------------------------
 
 /**
- * Create a Box service-account client from a pre-configured JWT JSON file.
+ * Create a Box client from a pre-configured JWT JSON file.
+ *
  * @param configKey  Filename stem (without .json) inside CONFIG_DIR.
+ * @param asUserId   Optional Box user ID.  When supplied the client acts as
+ *                   that user via the `as-user` header (requires "All
+ *                   Enterprise Users" app access level in the Developer
+ *                   Console).  Omit to use the enterprise service account.
  */
-export function createBoxClient(configKey: string): BoxClient {
+export function createBoxClient(configKey: string, asUserId?: string): BoxClient {
   const configPath = path.join(CONFIG_DIR, `${configKey}.json`);
   if (!fs.existsSync(configPath)) {
     throw new Error(`Box config file not found: ${configPath}`);
@@ -33,7 +38,13 @@ export function createBoxClient(configKey: string): BoxClient {
 
   const jwtConfig = JwtConfig.fromConfigJsonString(configJson);
   const auth = new BoxJwtAuth({ config: jwtConfig });
-  return new BoxClient({ auth });
+  console.log(`[box-client] subjectType=${auth.subjectType} subjectId=${auth.subjectId}`);
+  const client = new BoxClient({ auth });
+
+  if (asUserId) {
+    return client.withExtraHeaders({ 'as-user': asUserId });
+  }
+  return client;
 }
 
 // ---------------------------------------------------------------------------
