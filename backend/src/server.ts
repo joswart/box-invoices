@@ -95,8 +95,6 @@ app.post(
   express.json({ type: ['application/json', 'text/plain', '*/*'] }),
   express.urlencoded({ extended: false }),
   async (req: Request, res: Response<ProcessResponse>): Promise<void> => {
-    console.log('[process] content-type:', req.headers['content-type']);
-    console.log('[process] body:', JSON.stringify(req.body));
     const body = req.body as {
       boxFileId?: string;
       metadataTemplateKey?: string;
