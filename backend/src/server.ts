@@ -92,16 +92,29 @@ type ProcessResponse = ProcessSuccess | ProcessError;
 
 app.post(
   '/process',
-  express.json(),
+  express.json({ type: ['application/json', 'text/plain', '*/*'] }),
   express.urlencoded({ extended: false }),
   async (req: Request, res: Response<ProcessResponse>): Promise<void> => {
-    const { boxFileId, metadataTemplateKey, configKey, targetFolder, errorFolder } = req.body as {
+    console.log('[process] content-type:', req.headers['content-type']);
+    console.log('[process] body:', JSON.stringify(req.body));
+    const body = req.body as {
       boxFileId?: string;
       metadataTemplateKey?: string;
       configKey?: string;
       targetFolder?: string;
       errorFolder?: string;
+      source?: { type?: string; id?: string };
     };
+    const query = req.query as Record<string, string | undefined>;
+
+    // Support static config via query params (for Box webhook URL configuration)
+    const configKey = body.configKey ?? query.configKey;
+    const metadataTemplateKey = body.metadataTemplateKey ?? query.metadataTemplateKey;
+    const targetFolder = body.targetFolder ?? query.targetFolder;
+    const errorFolder = body.errorFolder ?? query.errorFolder;
+
+    // Support Box webhook payload format: file ID is in body.source.id
+    const boxFileId = body.boxFileId ?? (body.source?.type === 'file' ? body.source.id : undefined);
 
     if (!boxFileId) {
       res.status(400).json({ success: false, error: 'boxFileId is required.' });
