@@ -1,10 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
-
-// box-node-sdk uses a CommonJS default export; use require to avoid ESM issues.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const BoxSDK = require('box-node-sdk');
+import { BoxClient, BoxJwtAuth, JwtConfig } from 'box-node-sdk';
 
 /**
  * Directory where Box JWT config JSON files are stored.
@@ -21,22 +18,22 @@ const CONFIG_DIR = process.env.BOX_CONFIG_DIR ?? path.join(process.cwd(), 'confi
  * Create a Box service-account client from a pre-configured JWT JSON file.
  * @param configKey  Filename stem (without .json) inside CONFIG_DIR.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function createBoxClient(configKey: string): any {
+export function createBoxClient(configKey: string): BoxClient {
   const configPath = path.join(CONFIG_DIR, `${configKey}.json`);
   if (!fs.existsSync(configPath)) {
     throw new Error(`Box config file not found: ${configPath}`);
   }
 
-  let jwtConfig: unknown;
+  let configJson: string;
   try {
-    jwtConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    configJson = fs.readFileSync(configPath, 'utf-8');
   } catch {
-    throw new Error(`Failed to parse Box config: ${configPath}`);
+    throw new Error(`Failed to read Box config: ${configPath}`);
   }
 
-  const sdk = BoxSDK.getPreconfiguredInstance(jwtConfig);
-  return sdk.getAppAuthClient('enterprise');
+  const jwtConfig = JwtConfig.fromConfigJsonString(configJson);
+  const auth = new BoxJwtAuth({ config: jwtConfig });
+  return new BoxClient({ auth });
 }
 
 // ---------------------------------------------------------------------------
@@ -48,16 +45,17 @@ export function createBoxClient(configKey: string): any {
  * @returns The Box file ID of the uploaded file.
  */
 export async function uploadFileToBox(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  client: any,
+  client: BoxClient,
   folderId: string,
   filename: string,
   buffer: Buffer,
 ): Promise<string> {
   const stream = Readable.from(buffer);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = await client.files.uploadFile(folderId, filename, stream);
-  const fileId: string = result?.entries?.[0]?.id;
+  const result = await client.uploads.uploadFile({
+    attributes: { name: filename, parent: { id: folderId } },
+    file: stream,
+  });
+  const fileId = result?.entries?.[0]?.id;
   if (!fileId) throw new Error('Box uploadFile did not return a file ID');
   return fileId;
 }
@@ -67,15 +65,17 @@ export async function uploadFileToBox(
  * @returns Object with the file buffer and the original filename.
  */
 export async function downloadFileFromBox(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  client: any,
+  client: BoxClient,
   fileId: string,
 ): Promise<{ buffer: Buffer; filename: string }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const info: any = await client.files.get(fileId, { fields: 'name' });
+  const info = await client.files.getFileById(fileId, {
+    queryParams: { fields: ['name'] },
+  });
   const filename: string = info?.name ?? `file-${fileId}`;
 
-  const stream: Readable = await client.files.getReadStream(fileId);
+  const stream = await client.downloads.downloadFile(fileId);
+  if (!stream) throw new Error(`Box downloadFile returned no stream for file ${fileId}`);
+
   const chunks: Buffer[] = [];
   await new Promise<void>((resolve, reject) => {
     stream.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -89,12 +89,13 @@ export async function downloadFileFromBox(
  * Move a Box file to a different parent folder.
  */
 export async function moveFileInBox(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  client: any,
+  client: BoxClient,
   fileId: string,
   newFolderId: string,
 ): Promise<void> {
-  await client.files.update(fileId, { parent: { id: newFolderId } });
+  await client.files.updateFileById(fileId, {
+    requestBody: { parent: { id: newFolderId } },
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -103,18 +104,16 @@ export async function moveFileInBox(
 
 /**
  * Apply an enterprise metadata template to an uploaded Box file.
- * Uses the `enterprise` scope; the SDK resolves the full enterprise scope URI.
  */
 export async function applyMetadataToFile(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  client: any,
+  client: BoxClient,
   fileId: string,
   templateKey: string,
   metadata: Record<string, unknown>,
 ): Promise<void> {
-  await client.metadata.createOnFile(
+  await client.fileMetadata.createFileMetadataById(
     fileId,
-    client.metadata.scopes.ENTERPRISE,
+    'enterprise',
     templateKey,
     metadata,
   );
