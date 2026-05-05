@@ -20,6 +20,7 @@ import {
   findXmlAttachment,
   VALID_AF_RELATIONSHIPS,
 } from './validator';
+import { generateZugferdPdf, renderInvoiceHtml, InvoiceFormData, InvoiceTemplate } from './pdf-generator';
 
 const execAsync = promisify(exec);
 const app = express();
@@ -327,6 +328,64 @@ app.post(
     }
   },
 );
+
+// ---------------------------------------------------------------------------
+// POST /api/preview-html  — return compiled invoice HTML (for live preview)
+// ---------------------------------------------------------------------------
+
+app.post('/preview-html', express.json({ limit: '10mb' }), (req: Request, res: Response) => {
+  try {
+    const body = req.body as { data?: InvoiceFormData; template?: InvoiceTemplate } | InvoiceFormData;
+    if (!body || typeof body !== 'object') {
+      res.status(400).send('Invalid request body');
+      return;
+    }
+    const data: InvoiceFormData     = ('data' in body && body.data) ? body.data : body as InvoiceFormData;
+    const template: InvoiceTemplate | undefined = ('data' in body) ? (body as { data: InvoiceFormData; template?: InvoiceTemplate }).template : undefined;
+    const html = renderInvoiceHtml(data, template);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    res.status(500).send(err instanceof Error ? err.message : String(err));
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/generate-pdf  — build a ZUGFeRD PDF from invoice form data
+// ---------------------------------------------------------------------------
+
+app.post('/generate-pdf', express.json({ limit: '10mb' }), async (req: Request, res: Response) => {
+  try {
+    const body = req.body as { data?: InvoiceFormData; template?: InvoiceTemplate } | InvoiceFormData;
+    if (!body || typeof body !== 'object') {
+      res.status(400).json({ success: false, error: 'Invalid request body' });
+      return;
+    }
+    // Support both { data, template } envelope and bare InvoiceFormData
+    const data: InvoiceFormData = ('data' in body && body.data) ? body.data : body as InvoiceFormData;
+    const template: InvoiceTemplate | undefined = ('data' in body) ? (body as { data: InvoiceFormData; template?: InvoiceTemplate }).template : undefined;
+    const pdfBytes = await generateZugferdPdf(data, template);
+    const filename = `invoice-${(data.invoiceNumber || 'draft').replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(Buffer.from(pdfBytes));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ success: false, error: msg });
+  }
+});
+
+// Serve the raw invoice.hbs template so the frontend can compile it client-side.
+// This means template edits are immediately reflected in the preview without a frontend rebuild.
+app.get('/template', (_req: Request, res: Response) => {
+  try {
+    const templatePath = path.resolve(__dirname, '..', 'templates', 'invoice.hbs');
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.sendFile(templatePath);
+  } catch (err) {
+    res.status(500).send(err instanceof Error ? err.message : String(err));
+  }
+});
 
 app.get('/health', (_req: Request, res: Response) => {
   res.json({ ok: true });

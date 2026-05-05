@@ -1,5 +1,6 @@
 import { UploadResponse, parseInvoice } from './invoice-parsers';
 import { esc, renderValidation, renderInvoice } from './invoice-renderer';
+import { initCreateScreen } from './invoice-form';
 
 // ============================================================
 // DOM wiring
@@ -124,6 +125,12 @@ function initUploadScreen(): void {
     if (file) void handleFile(file);
     fileInput.value = '';
   });
+
+  $('create-invoice-btn').addEventListener('click', () => {
+    $('upload-screen').classList.add('hidden');
+    $('create-screen').classList.remove('hidden');
+    initCreateScreen();
+  });
 }
 
 function initViewerScreen(): void {
@@ -149,7 +156,15 @@ function initViewerScreen(): void {
   });
 }
 
+function initCreateScreenNav(): void {
+  $('create-back-btn').addEventListener('click', () => {
+    $('create-screen').classList.add('hidden');
+    $('upload-screen').classList.remove('hidden');
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initUploadScreen();
   initViewerScreen();
+  initCreateScreenNav();
 });
