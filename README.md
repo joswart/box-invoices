@@ -1,6 +1,6 @@
 # ZUGFeRD / Factur-X Invoice Processor
 
-A containerised web application and REST API for working with structured e-invoice PDFs and XML files. Supports all major European formats.
+A containerised web application and REST API for working with structured e-invoice PDFs and XML files. Supports all major European formats. Includes a full invoice creation tool that generates ZUGFeRD-compliant PDFs with embedded Factur-X XML.
 
 ## Supported formats
 
@@ -20,7 +20,10 @@ PDFs with embedded XML and standalone XML files are both accepted.
 
 | Capability | Details |
 |---|---|
-| **Viewer** | Browser UI — drag-and-drop a PDF or XML file, see the rendered invoice alongside the original document |
+| **Invoice creator** | Browser UI — fill in seller/buyer details and line items, preview the result live, then generate a ZUGFeRD PDF with embedded Factur-X CII XML |
+| **Template settings** | Logo, header text, footer text, font, and accent color are persisted across sessions in the browser |
+| **Import** | Populate the invoice form from a CSV or Excel file; download blank templates to get started |
+| **Viewer** | Drag-and-drop a PDF or XML file, see the rendered invoice alongside the original document |
 | **EN16931 Validation** | Checks XMP metadata, `AFRelationship`, XML well-formedness, and required element presence per format |
 | **Metadata extraction** | Parses 60+ EN16931 fields from CII, UBL, FacturaE, and KSeF documents |
 | **Box integration** | `POST /process` is called from Box automation with a file ID; downloads the PDF from Box, maps invoice fields to a Box metadata template, and optionally moves the file to a success or error folder |
@@ -39,9 +42,14 @@ browser / API client
         │
         ▼
   Node.js / Express backend
-  ├── POST /upload   — viewer: returns parsed invoice JSON + PDF base64
-  └── POST /process  — Box automation: download → extract → map → apply metadata
+  ├── POST /upload        — viewer: returns parsed invoice JSON + PDF base64
+  ├── POST /generate-pdf  — creator: builds a ZUGFeRD PDF from form data
+  ├── POST /preview-html  — creator: returns compiled invoice HTML
+  ├── GET  /template      — serves invoice.hbs for client-side live preview
+  └── POST /process       — Box automation: download → extract → map → apply metadata
         │
+        ├── puppeteer + system Chromium    — renders invoice HTML to PDF
+        ├── pdf-generator.ts               — embeds CII XML into PDF (ZUGFeRD/Factur-X)
         ├── box-node-sdk (JWT auth)        — downloads existing file from Box
         ├── pdfdetach (poppler-utils)      — extracts embedded XML from PDF
         ├── validator.ts                   — XMP, AFRelationship, XML structure checks
@@ -85,6 +93,16 @@ The viewer is available at `http://localhost:8080`.
 ---
 
 ## Using the application
+
+### Invoice creator
+
+1. Open `http://localhost:8080` and click **Create Invoice**.
+2. Fill in the **Invoice Template** section: upload a logo, set an accent color, font, and optional header/footer text. These settings are saved in the browser and restored automatically on your next visit.
+3. Fill in seller, buyer, line items, and payment details.
+4. The live preview (right pane) updates as you type, rendered using the same Handlebars template the backend uses for PDF generation.
+5. Click **Generate PDF** to download a ZUGFeRD-compliant PDF with an embedded Factur-X CII XML attachment.
+6. Click **Download XML** to download just the CII XML without generating a PDF.
+7. To pre-fill the form, click **Import** and upload a CSV or Excel file. Use the **Download CSV template** / **Download Excel template** links to get a blank starter file.
 
 ### Browser viewer
 
@@ -154,6 +172,33 @@ if (result.success) {
 ---
 
 ## API reference
+
+### `POST /api/generate-pdf`
+
+Generates a ZUGFeRD-compliant PDF from invoice form data. The PDF contains an embedded Factur-X CII XML attachment and is returned as `application/pdf`.
+
+**Request** — `application/json`
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `data` | object | yes | Invoice form data (see field names in the creator UI) |
+| `template` | object | no | Template settings: `logoDataUrl`, `headerText`, `footerText`, `font`, `accentColor` |
+
+**Success response** `200` — `application/pdf` binary stream, `Content-Disposition: attachment; filename="invoice-<number>.pdf"`
+
+**Error response** `500`
+
+```json
+{ "success": false, "error": "Puppeteer launch failed: ..." }
+```
+
+---
+
+### `GET /api/template`
+
+Returns the raw `invoice.hbs` Handlebars template. The frontend fetches this on load so that edits to the template file are reflected in the live preview without a frontend rebuild.
+
+---
 
 ### `POST /api/process`
 
@@ -376,25 +421,30 @@ Line items are serialised as a JSON array in the `lineItems` string field:
 ## Project structure
 
 ```
-ZUGFeRD/
+box-invoices/
 ├── config/                                  ← Box JWT config files (not committed)
 │   └── <configKey>.json
 ├── backend/
 │   ├── src/
-│   │   ├── server.ts                        ← Express app, /process and /upload routes
+│   │   ├── server.ts                        ← Express app — all API routes
+│   │   ├── pdf-generator.ts                 ← Puppeteer PDF generation + Factur-X XML embedding
 │   │   ├── validator.ts                     ← XMP, AFRelationship, XML structure validation
 │   │   ├── invoice-extractor-types.ts       ← Shared types and XML helpers
 │   │   ├── invoice-extractor.ts             ← CII + UBL field extraction
 │   │   ├── invoice-extractor-national.ts    ← FacturaE (Spain) + KSeF (Poland) extraction
 │   │   ├── metadata-mapper.ts               ← Invoice → Box metadata object
 │   │   └── box-client.ts                    ← Box SDK wrapper (JWT auth, download, move, metadata)
+│   ├── templates/
+│   │   └── invoice.hbs                      ← Handlebars invoice template (shared by preview + PDF)
 │   ├── Dockerfile
 │   ├── package.json
 │   └── tsconfig.json
 ├── frontend/
 │   ├── src/
-│   │   ├── app.ts                           ← Browser viewer entry point
-│   │   ├── invoice-parsers.ts               ← Types and response parsing
+│   │   ├── app.ts                           ← Entry point — screen routing
+│   │   ├── invoice-form.ts                  ← Invoice creator: form, CII XML builder, live preview
+│   │   ├── invoice-import.ts                ← CSV / Excel import + template download
+│   │   ├── invoice-parsers.ts               ← Types and upload response parsing
 │   │   └── invoice-renderer.ts              ← DOM rendering of parsed invoice data
 │   ├── public/                              ← index.html, style.css
 │   ├── Dockerfile
@@ -418,7 +468,14 @@ cd frontend && npm install && npx tsc --watch
 docker compose up --build
 ```
 
-The backend requires `pdfdetach` (part of poppler-utils). On macOS: `brew install poppler`. The Docker image installs it automatically.
+The backend requires `pdfdetach` (part of poppler-utils) and Chromium (for Puppeteer PDF generation). On macOS:
+
+```bash
+brew install poppler chromium
+export PUPPETEER_EXECUTABLE_PATH=$(which chromium)
+```
+
+The Docker image installs both automatically.
 
 ---
 
