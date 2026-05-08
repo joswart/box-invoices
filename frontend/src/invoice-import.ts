@@ -6,7 +6,7 @@ import type { InvoiceFormData, LineItem } from './invoice-form';
 // ============================================================
 
 const HEADER_FIELDS = [
-  'invoiceNumber', 'invoiceDate', 'dueDate', 'invoiceType', 'currency', 'profile', 'notes',
+  'invoiceNumber', 'invoiceDate', 'dueDate', 'invoiceType', 'currency', 'profile', 'letter', 'notes',
   'sellerName', 'sellerStreet', 'sellerPostalCode', 'sellerCity', 'sellerCountry', 'sellerVatId', 'sellerTaxNumber',
   'buyerName', 'buyerReference', 'buyerStreet', 'buyerPostalCode', 'buyerCity', 'buyerCountry', 'buyerVatId',
   'paymentMeansCode', 'iban', 'bic', 'paymentReference', 'paymentTerms',
@@ -58,7 +58,7 @@ const TEMPLATE_ITEMS: [string, string, string, string, string][] = [
 function defaultData(): InvoiceFormData {
   return {
     invoiceNumber: '', invoiceDate: '', invoiceType: '380', currency: 'EUR',
-    profile: 'en16931', notes: '',
+    profile: 'en16931', letter: '', notes: '',
     sellerName: '', sellerStreet: '', sellerCity: '', sellerPostalCode: '',
     sellerCountry: '', sellerVatId: '', sellerTaxNumber: '',
     buyerName: '', buyerReference: '', buyerStreet: '', buyerCity: '',

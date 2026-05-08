@@ -222,6 +222,15 @@
       white-space: pre-wrap;
     }
 
+    /* ── Letter ── */
+    .letter {
+      margin-bottom: 7mm;
+      font-size: 10pt;
+      line-height: 1.75;
+      white-space: pre-wrap;
+      color: var(--text);
+    }
+
     /* ── Footer ── */
     .footer {
       margin-top: auto;
@@ -296,6 +305,11 @@
 
   <!-- ══ Heading ══ -->
   <h1>{{typeLabel}}&nbsp;{{invoiceNumber}}</h1>
+
+  <!-- ══ Letter ══ -->
+  {{#if letter}}
+  <p class="letter">{{letter}}</p>
+  {{/if}}
 
   <!-- ══ Line items ══ -->
   <table class="items-table">

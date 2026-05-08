@@ -28,6 +28,7 @@ export interface InvoiceFormData {
   invoiceType: string;
   currency: string;
   profile: string;
+  letter: string;
   notes: string;
   sellerName: string;
   sellerStreet: string;
@@ -55,7 +56,7 @@ export interface InvoiceFormData {
 function emptyData(): InvoiceFormData {
   return {
     invoiceNumber: '', invoiceDate: '', invoiceType: '380', currency: 'EUR',
-    profile: 'en16931', notes: '',
+    profile: 'en16931', letter: '', notes: '',
     sellerName: '', sellerStreet: '', sellerCity: '', sellerPostalCode: '',
     sellerCountry: 'DE', sellerVatId: '', sellerTaxNumber: '',
     buyerName: '', buyerReference: '', buyerStreet: '', buyerCity: '',
@@ -349,6 +350,13 @@ export function renderPreview(data: InvoiceFormData, template?: InvoiceTemplate)
     </div>
   </div>`;
 
+  // ── Letter ───────────────────────────────────────────────────────────────
+  if (data.letter) {
+    html += `<div class="prev-section prev-letter">
+      <p class="prev-letter-text">${esc(data.letter).replace(/\n/g, '<br>')}</p>
+    </div>`;
+  }
+
   // ── Line items ────────────────────────────────────────────────────────────
   if (lines.length > 0) {
     html += `<div class="prev-section">
@@ -566,6 +574,14 @@ function buildFormHtml(data: InvoiceFormData): string {
     </div>
 
     <div class="form-section">
+      <div class="form-section-title">Letter</div>
+      <div class="form-field form-field-full">
+        <label for="f-letter">Letter</label>
+        <textarea id="f-letter" name="f-letter" rows="5" placeholder="Dear Sir or Madam, …">${esc(data.letter)}</textarea>
+      </div>
+    </div>
+
+    <div class="form-section">
       <div class="form-section-title">Line Items</div>
       <div class="line-items-wrapper">
         <table class="line-items-table">
@@ -734,6 +750,7 @@ function readFormData(): InvoiceFormData {
     invoiceType:      v('f-type'),
     currency:         v('f-currency') || 'EUR',
     profile:          v('f-profile'),
+    letter:           v('f-letter'),
     notes:            v('f-notes'),
     sellerName:       v('f-seller-name'),
     sellerStreet:     v('f-seller-street'),

@@ -34,6 +34,7 @@ export interface InvoiceFormData {
   invoiceType: string;
   currency: string;
   profile: string;
+  letter: string;
   notes: string;
   sellerName: string;
   sellerStreet: string;
@@ -477,6 +478,9 @@ function buildTemplateContext(data: InvoiceFormData, template?: InvoiceTemplate)
     bic:              data.bic,
     paymentReference: data.paymentReference,
     paymentTerms:     data.paymentTerms,
+
+    // Letter
+    letter: data.letter || '',
 
     // Notes
     notes: data.notes,
