@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "esbuild src/app.ts --bundle --minify --target=es2020 --outfile=dist/app.js --loader:.hbs=text"
+    "build": "esbuild src/app.ts --bundle --minify --target=es2020 --outfile=dist/app.js --loader:.hbs=text && cp src/public/index.html src/public/style.css dist/"
   },
   "devDependencies": {
     "esbuild": "^0.21.4",
