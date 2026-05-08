@@ -23,26 +23,25 @@ RUN apk add --no-cache \
   poppler-utils \
   ttf-dejavu \
   ttf-freefont \
-  unzip \
-  wget \
-  && mkdir -p /usr/share/fonts/google \
-  && for url in \
-       "https://fonts.google.com/download?family=Inter" \
-       "https://fonts.google.com/download?family=Roboto" \
-       "https://fonts.google.com/download?family=Open%20Sans" \
-       "https://fonts.google.com/download?family=Lato" \
-       "https://fonts.google.com/download?family=Montserrat" \
-       "https://fonts.google.com/download?family=Poppins" \
-       "https://fonts.google.com/download?family=Source%20Sans%203" \
-       "https://fonts.google.com/download?family=Raleway" \
-       "https://fonts.google.com/download?family=Merriweather" \
-       "https://fonts.google.com/download?family=Playfair%20Display" \
-     ; do \
-       wget -qO /tmp/f.zip "$url" \
-       && unzip -q /tmp/f.zip -d /tmp/f \
-       && find /tmp/f -name "*.ttf" -exec cp {} /usr/share/fonts/google/ \; \
-       && rm -rf /tmp/f /tmp/f.zip; \
-     done \
+  wget
+
+# Google Fonts — downloaded from raw.githubusercontent.com (no auth, no redirects)
+# Variable fonts cover all weights in a single file; static fonts get Regular + Bold.
+RUN mkdir -p /usr/share/fonts/google \
+  && BASE=https://raw.githubusercontent.com/google/fonts/main \
+  && wget -qO /usr/share/fonts/google/Inter.ttf             "$BASE/ofl/inter/Inter%5Bopsz%2Cwght%5D.ttf" \
+  && wget -qO /usr/share/fonts/google/Roboto.ttf            "$BASE/apache/roboto/Roboto%5Bwdth%2Cwght%5D.ttf" \
+  && wget -qO /usr/share/fonts/google/OpenSans.ttf          "$BASE/apache/opensans/OpenSans%5Bwdth%2Cwght%5D.ttf" \
+  && wget -qO /usr/share/fonts/google/Montserrat.ttf        "$BASE/ofl/montserrat/Montserrat%5Bwght%5D.ttf" \
+  && wget -qO /usr/share/fonts/google/SourceSans3.ttf       "$BASE/ofl/sourcesans3/SourceSans3%5Bwght%5D.ttf" \
+  && wget -qO /usr/share/fonts/google/Raleway.ttf           "$BASE/ofl/raleway/Raleway%5Bwght%5D.ttf" \
+  && wget -qO /usr/share/fonts/google/PlayfairDisplay.ttf   "$BASE/ofl/playfairdisplay/PlayfairDisplay%5Bwght%5D.ttf" \
+  && wget -qO /usr/share/fonts/google/Lato-Regular.ttf      "$BASE/ofl/lato/Lato-Regular.ttf" \
+  && wget -qO /usr/share/fonts/google/Lato-Bold.ttf         "$BASE/ofl/lato/Lato-Bold.ttf" \
+  && wget -qO /usr/share/fonts/google/Poppins-Regular.ttf   "$BASE/ofl/poppins/Poppins-Regular.ttf" \
+  && wget -qO /usr/share/fonts/google/Poppins-Bold.ttf      "$BASE/ofl/poppins/Poppins-Bold.ttf" \
+  && wget -qO /usr/share/fonts/google/Merriweather-Regular.ttf "$BASE/ofl/merriweather/Merriweather-Regular.ttf" \
+  && wget -qO /usr/share/fonts/google/Merriweather-Bold.ttf    "$BASE/ofl/merriweather/Merriweather-Bold.ttf" \
   && fc-cache -f
 
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
