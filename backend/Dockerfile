@@ -30,8 +30,8 @@ RUN apk add --no-cache \
 RUN mkdir -p /usr/share/fonts/google \
   && BASE=https://raw.githubusercontent.com/google/fonts/main \
   && wget -qO /usr/share/fonts/google/Inter.ttf             "$BASE/ofl/inter/Inter%5Bopsz%2Cwght%5D.ttf" \
-  && wget -qO /usr/share/fonts/google/Roboto.ttf            "$BASE/apache/roboto/Roboto%5Bwdth%2Cwght%5D.ttf" \
-  && wget -qO /usr/share/fonts/google/OpenSans.ttf          "$BASE/apache/opensans/OpenSans%5Bwdth%2Cwght%5D.ttf" \
+  && wget -qO /usr/share/fonts/google/Roboto.ttf            "$BASE/ofl/roboto/Roboto%5Bwdth%2Cwght%5D.ttf" \
+  && wget -qO /usr/share/fonts/google/OpenSans.ttf          "$BASE/ofl/opensans/OpenSans%5Bwdth%2Cwght%5D.ttf" \
   && wget -qO /usr/share/fonts/google/Montserrat.ttf        "$BASE/ofl/montserrat/Montserrat%5Bwght%5D.ttf" \
   && wget -qO /usr/share/fonts/google/SourceSans3.ttf       "$BASE/ofl/sourcesans3/SourceSans3%5Bwght%5D.ttf" \
   && wget -qO /usr/share/fonts/google/Raleway.ttf           "$BASE/ofl/raleway/Raleway%5Bwght%5D.ttf" \
@@ -40,8 +40,7 @@ RUN mkdir -p /usr/share/fonts/google \
   && wget -qO /usr/share/fonts/google/Lato-Bold.ttf         "$BASE/ofl/lato/Lato-Bold.ttf" \
   && wget -qO /usr/share/fonts/google/Poppins-Regular.ttf   "$BASE/ofl/poppins/Poppins-Regular.ttf" \
   && wget -qO /usr/share/fonts/google/Poppins-Bold.ttf      "$BASE/ofl/poppins/Poppins-Bold.ttf" \
-  && wget -qO /usr/share/fonts/google/Merriweather-Regular.ttf "$BASE/ofl/merriweather/Merriweather-Regular.ttf" \
-  && wget -qO /usr/share/fonts/google/Merriweather-Bold.ttf    "$BASE/ofl/merriweather/Merriweather-Bold.ttf" \
+  && wget -qO /usr/share/fonts/google/Merriweather.ttf          "$BASE/ofl/merriweather/Merriweather%5Bopsz%2Cwdth%2Cwght%5D.ttf" \
   && fc-cache -f
 
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
