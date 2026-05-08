@@ -465,6 +465,9 @@
     page.insertBefore(footer,    sep);
   });
 
+  // Set min-height so the last page is full-height and margin-top:auto lands correctly
+  page.style.minHeight = ((inserts.length + 1) * PAGE_H) + 'px';
+
   // Always add a footer at the bottom of the last page
   page.appendChild(makeEl('div', footerCss, footerHTML));
 })();
