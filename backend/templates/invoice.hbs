@@ -246,6 +246,7 @@
     @media screen {
       .page {
         position: relative;
+        isolation: isolate;
       }
 
       .page::after {
@@ -257,9 +258,9 @@
         background: repeating-linear-gradient(
           to bottom,
           transparent 0,
-          transparent calc(297mm - 1px),
-          rgba(120, 120, 190, 0.5) calc(297mm - 1px),
-          rgba(120, 120, 190, 0.5) 297mm
+          transparent calc(297mm - 3px),
+          rgba(80, 80, 200, 0.7) calc(297mm - 3px),
+          rgba(80, 80, 200, 0.7) 297mm
         );
       }
     }
