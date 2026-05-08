@@ -737,6 +737,7 @@ function buildPreviewContext(data: InvoiceFormData, tmpl: InvoiceTemplate): Reco
     paymentReference: data.paymentReference,
     paymentTerms:     data.paymentTerms,
     letter:           data.letter || '',
+    letterParagraphs: (data.letter || '').split(/\n{2,}/).filter((p: string) => p.trim()),
     notes:            data.notes || '',
     hasPaymentInfo:   !!(data.iban || data.paymentTerms),
     hasDueDate:       !!data.dueDate,

@@ -494,6 +494,7 @@ function buildTemplateContext(data: InvoiceFormData, template?: InvoiceTemplate)
 
     // Letter
     letter: data.letter || '',
+    letterParagraphs: (data.letter || '').split(/\n{2,}/).filter(p => p.trim()),
 
     // Notes
     notes: data.notes,

@@ -244,7 +244,7 @@
     }
 
     @media screen {
-      .page { position: relative; isolation: isolate; }
+      .page { position: relative; }
     }
 
     @media print {
@@ -321,9 +321,9 @@
   <h1>{{typeLabel}}&nbsp;{{invoiceNumber}}</h1>
 
   <!-- ══ Letter ══ -->
-  {{#if letter}}
-  <p class="letter">{{letter}}</p>
-  {{/if}}
+  {{#each letterParagraphs}}
+  <p class="letter">{{this}}</p>
+  {{/each}}
 
   <!-- ══ Line items ══ -->
   <table class="items-table">
@@ -398,69 +398,69 @@
 </div>
 <script>
 (function () {
-  var PX          = 96 / 25.4;
-  var PAGE1_BREAK = Math.round(281 * PX);
-  var PAGE_H      = Math.round(297 * PX);
-  var GAP_H       = Math.round(32  * PX);
+  var PX         = 96 / 25.4;
+  var PAGE1_END  = Math.round(281 * PX);
+  var PAGE_H     = Math.round(297 * PX);
+  var BOT_H      = Math.round(16  * PX);
+  var TOP_H      = Math.round(16  * PX);
 
   var page = document.querySelector('.page');
   if (!page) return;
 
-  // Use offsetTop (CSS pixels, not affected by html zoom) for correct positioning
+  var footerEl   = page.querySelector('.footer');
+  var footerHTML = footerEl ? footerEl.innerHTML : '';
+  if (footerEl) footerEl.remove();
+
   var children = Array.from(page.children);
   var tops     = children.map(function (c) { return c.offsetTop; });
+  var bottoms  = children.map(function (c) { return c.offsetTop + c.offsetHeight; });
 
-  // Compute spacers: push elements whose top lands at or past a break zone.
-  // Elements that merely span a break stay in place — the overlay covers the
-  // portion in the margin zone.
-  var spacers    = [];
+  var inserts    = [];
   var cumulative = 0;
-  var nextBreak  = PAGE1_BREAK;
+  var nextBreak  = PAGE1_END;
 
-  for (var i = 0; i < tops.length; i++) {
-    var adjTop    = tops[i] + cumulative;
-    var adjBottom = tops[i] + children[i].offsetHeight + cumulative;
+  for (var i = 0; i < children.length; i++) {
+    var adjTop    = tops[i]    + cumulative;
+    var adjBottom = bottoms[i] + cumulative;
 
-    if (adjTop >= nextBreak) {
-      var h = Math.max(0, nextBreak + GAP_H - adjTop);
-      if (h > 0) {
-        spacers.push({ before: i, height: h });
-        cumulative += h;
-      }
-      nextBreak += PAGE_H;
-    } else if (adjBottom > nextBreak) {
-      // Element spans the break — advance nextBreak so subsequent elements
-      // are calculated correctly, but don't push this element.
-      nextBreak += PAGE_H;
-      var newBottom = adjBottom;
-      while (newBottom > nextBreak) nextBreak += PAGE_H;
+    if (adjTop >= nextBreak || adjBottom > nextBreak) {
+      inserts.push({ before: i });
+      var added = BOT_H + TOP_H;
+      cumulative += added;
+      nextBreak  += PAGE_H;
+      var newBot = adjBottom + added;
+      while (newBot > nextBreak) nextBreak += PAGE_H;
     }
   }
 
-  // Insert spacers (reverse so pre-captured indices stay valid)
-  spacers.reverse().forEach(function (s) {
-    var sp = document.createElement('div');
-    sp.className = 'preview-spacer';
-    sp.style.cssText = 'display:block;height:' + s.height + 'px;flex-shrink:0;';
-    page.insertBefore(sp, children[s.before]);
+  function makeEl(tag, css, html) {
+    var el = document.createElement(tag);
+    el.className = 'preview-spacer';
+    el.style.cssText = css;
+    if (html) el.innerHTML = html;
+    return el;
+  }
+
+  var footerCss =
+    'flex-shrink:0;height:' + BOT_H + 'px;margin-top:auto;' +
+    'display:flex;align-items:center;justify-content:center;' +
+    'border-top:0.5pt solid #ddd;font-size:7.5pt;color:#666;' +
+    'text-align:center;white-space:pre-line;padding:0 5mm;box-sizing:border-box;';
+
+  inserts.reverse().forEach(function (ins) {
+    var ref = children[ins.before];
+    var topMargin = makeEl('div', 'flex-shrink:0;height:' + TOP_H + 'px;');
+    var sep       = makeEl('div',
+      'flex-shrink:0;height:4px;background:rgba(80,80,200,0.5);' +
+      'margin:0 -20mm 0 -25mm;');
+    var footer    = makeEl('div', footerCss, footerHTML);
+
+    page.insertBefore(topMargin, ref);
+    page.insertBefore(sep,       topMargin);
+    page.insertBefore(footer,    sep);
   });
 
-  // Insert absolutely-positioned grey overlays at exact CSS-pixel break positions
-  // (appended last so they sit above all siblings in document order)
-  var totalH = page.offsetHeight;
-  var bp = PAGE1_BREAK;
-  while (bp < totalH) {
-    var ov = document.createElement('div');
-    ov.className = 'preview-overlay';
-    ov.style.cssText =
-      'position:absolute;left:0;right:0;' +
-      'top:' + bp + 'px;height:' + GAP_H + 'px;' +
-      'background:#e8e8e8;' +
-      'border-top:2px solid rgba(80,80,200,0.7);' +
-      'z-index:9999;pointer-events:none;';
-    page.appendChild(ov);
-    bp += PAGE_H;
-  }
+  page.appendChild(makeEl('div', footerCss, footerHTML));
 })();
 </script>
 </body>
