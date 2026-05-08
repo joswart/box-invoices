@@ -242,6 +242,22 @@
       line-height: 1.65;
       white-space: pre-line;
     }
+
+    @media print {
+      .footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        margin-top: 0;
+        padding: 3mm 20mm 4mm 25mm;
+        background: white;
+      }
+
+      .page {
+        padding-bottom: 16mm;
+      }
+    }
   </style>
 </head>
 <body>
