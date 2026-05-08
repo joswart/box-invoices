@@ -520,6 +520,14 @@ function buildFormHtml(data: InvoiceFormData): string {
   <form id="invoice-form" autocomplete="off">
 
     <div class="form-section">
+      <div class="form-section-title">Letter</div>
+      <div class="form-field form-field-full">
+        <label for="f-letter">Letter</label>
+        <textarea id="f-letter" name="f-letter" rows="5" placeholder="Dear Sir or Madam, …">${esc(data.letter)}</textarea>
+      </div>
+    </div>
+
+    <div class="form-section">
       <div class="form-section-title">Invoice Details</div>
       <div class="form-row">
         ${field('f-number', 'Invoice Number', 'text', data.invoiceNumber, 'RE-2025-001')}
@@ -570,14 +578,6 @@ function buildFormHtml(data: InvoiceFormData): string {
       </div>
       <div class="form-row">
         ${field('f-buyer-vat', 'VAT ID', 'text', data.buyerVatId, 'DE987654321')}
-      </div>
-    </div>
-
-    <div class="form-section">
-      <div class="form-section-title">Letter</div>
-      <div class="form-field form-field-full">
-        <label for="f-letter">Letter</label>
-        <textarea id="f-letter" name="f-letter" rows="5" placeholder="Dear Sir or Madam, …">${esc(data.letter)}</textarea>
       </div>
     </div>
 
@@ -716,6 +716,7 @@ function buildPreviewContext(data: InvoiceFormData, tmpl: InvoiceTemplate): Reco
     bic:              data.bic,
     paymentReference: data.paymentReference,
     paymentTerms:     data.paymentTerms,
+    letter:           data.letter || '',
     notes:            data.notes || '',
     hasPaymentInfo:   !!(data.iban || data.paymentTerms),
     hasDueDate:       !!data.dueDate,
