@@ -2,7 +2,7 @@
 # Context is the repo root. Only frontend/src, frontend/package*.json, and
 # frontend/tsconfig.json are required — all under frontend/src which is reliably
 # included in the build context.
-FROM node:20-alpine AS build
+FROM public.ecr.aws/docker/library/node:20-alpine AS build
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ COPY frontend/src            ./frontend/src
 RUN cd frontend && npm run build
 
 # ---- runtime ----
-FROM nginx:1.27-alpine
+FROM public.ecr.aws/docker/library/nginx:1.27-alpine
 
 # Inline nginx config so we don't depend on the build context for this file.
 RUN printf 'server {\n\

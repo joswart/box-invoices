@@ -1,4 +1,4 @@
-FROM node:20-alpine AS build
+FROM public.ecr.aws/docker/library/node:20-alpine AS build
 
 WORKDIR /app
 COPY package*.json ./
@@ -11,7 +11,7 @@ COPY templates ./templates
 RUN npm run build
 
 # ---- runtime ----
-FROM node:20-alpine
+FROM public.ecr.aws/docker/library/node:20-alpine
 
 # System Chromium + fonts for Puppeteer
 RUN apk add --no-cache \
