@@ -244,48 +244,12 @@
     }
 
     @media screen {
-      .page {
-        position: relative;
-        isolation: isolate;
-      }
-
-      .page::after {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        pointer-events: none;
-        z-index: 999;
-        background-image:
-          /* Page 1: break line at 281mm + footer zone to 297mm */
-          linear-gradient(
-            to bottom,
-            transparent calc(281mm - 2px),
-            rgba(80, 80, 200, 0.7) calc(281mm - 2px),
-            rgba(80, 80, 200, 0.7) 281mm,
-            #e8e8e8 281mm,
-            #e8e8e8 297mm,
-            transparent 297mm
-          ),
-          /* Pages 2+: top margin zone + break line + footer zone, tiled every 297mm */
-          linear-gradient(
-            to bottom,
-            #e8e8e8 0,
-            #e8e8e8 16mm,
-            transparent 16mm,
-            transparent calc(281mm - 2px),
-            rgba(80, 80, 200, 0.7) calc(281mm - 2px),
-            rgba(80, 80, 200, 0.7) 281mm,
-            #e8e8e8 281mm,
-            #e8e8e8 297mm
-          );
-        background-size: 100% auto, 100% 297mm;
-        background-position: 0 0, 0 297mm;
-        background-repeat: no-repeat, repeat-y;
-      }
+      .page { position: relative; }
     }
 
     @media print {
       .footer { display: none; }
+      .preview-spacer, .preview-overlay { display: none !important; }
 
       .page {
         padding-top: 1mm;
@@ -434,40 +398,57 @@
 </div>
 <script>
 (function () {
-  var PX         = 96 / 25.4;
-  var PAGE1_BREAK = Math.round(281 * PX); // content ends at 281mm on page 1
-  var PAGE_H      = Math.round(297 * PX); // full page height = interval between breaks
-  var GAP_H       = Math.round(32  * PX); // 16mm footer + 16mm top margin
+  var PX          = 96 / 25.4;
+  var PAGE1_BREAK = Math.round(281 * PX);
+  var PAGE_H      = Math.round(297 * PX);
+  var GAP_H       = Math.round(32  * PX);
 
   var page = document.querySelector('.page');
   if (!page) return;
 
-  var pageTop  = page.getBoundingClientRect().top;
+  // Use offsetTop (CSS pixels, not affected by html zoom) for correct positioning
   var children = Array.from(page.children);
-  var tops     = children.map(function (c) {
-    return Math.round(c.getBoundingClientRect().top - pageTop);
-  });
+  var tops     = children.map(function (c) { return c.offsetTop; });
 
+  // Compute spacers: push elements whose top lands inside a break zone to after it
   var spacers    = [];
   var cumulative = 0;
   var nextBreak  = PAGE1_BREAK;
 
   for (var i = 0; i < tops.length; i++) {
     var adjTop = tops[i] + cumulative;
-    while (adjTop >= nextBreak) {
+    if (adjTop >= nextBreak) {
       var h = Math.max(0, nextBreak + GAP_H - adjTop);
       spacers.push({ before: i, height: h });
       cumulative += h;
       nextBreak  += PAGE_H;
-      adjTop = tops[i] + cumulative;
     }
   }
 
+  // Insert spacers (reverse so pre-captured indices stay valid)
   spacers.reverse().forEach(function (s) {
     var sp = document.createElement('div');
+    sp.className = 'preview-spacer';
     sp.style.cssText = 'display:block;height:' + s.height + 'px;flex-shrink:0;';
     page.insertBefore(sp, children[s.before]);
   });
+
+  // Insert absolutely-positioned grey overlays at exact CSS-pixel break positions
+  // (appended last so they sit above all siblings in document order)
+  var totalH = page.offsetHeight;
+  var bp = PAGE1_BREAK;
+  while (bp < totalH) {
+    var ov = document.createElement('div');
+    ov.className = 'preview-overlay';
+    ov.style.cssText =
+      'position:absolute;left:0;right:0;' +
+      'top:' + bp + 'px;height:' + GAP_H + 'px;' +
+      'background:#e8e8e8;' +
+      'border-top:2px solid rgba(80,80,200,0.7);' +
+      'z-index:9999;pointer-events:none;';
+    page.appendChild(ov);
+    bp += PAGE_H;
+  }
 })();
 </script>
 </body>
