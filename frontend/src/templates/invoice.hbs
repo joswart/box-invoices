@@ -24,7 +24,7 @@
       font-family: {{{fontFamily}}};
       font-size: 10pt;
       color: var(--text);
-      background: white;
+      background: #e8e8e8;
       width: 210mm;
     }
 
@@ -51,7 +51,7 @@
       padding-top: 2mm;
       font-size: 9pt;
       color: var(--muted);
-      white-space: pre-line;
+      #e8e8e8-space: pre-line;
     }
 
     .header-right {
@@ -89,7 +89,7 @@
       padding-bottom: 1.5mm;
       margin-bottom: 2mm;
       border-bottom: 0.4pt solid var(--border);
-      white-space: nowrap;
+      #e8e8e8-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
@@ -136,7 +136,7 @@
       font-size: 9.5pt;
     }
 
-    .items-table thead tr { background: var(--accent); color: white; }
+    .items-table thead tr { background: var(--accent); color: #e8e8e8; }
 
     .items-table th {
       padding: 2mm 3mm;
@@ -212,14 +212,14 @@
       line-height: 1.6;
     }
 
-    .pay-label { color: var(--muted); font-size: 8.5pt; white-space: nowrap; }
+    .pay-label { color: var(--muted); font-size: 8.5pt; #e8e8e8-space: nowrap; }
     .pay-value { font-weight: 500; }
     .mono      { font-family: "DejaVu Sans Mono", "Courier New", monospace; font-size: 9pt; letter-spacing: 0.02em; }
 
     .notes-text {
       line-height: 1.7;
       color: #444;
-      white-space: pre-wrap;
+      #e8e8e8-space: pre-wrap;
     }
 
     /* ── Letter ── */
@@ -227,7 +227,7 @@
       margin-bottom: 7mm;
       font-size: 10pt;
       line-height: 1.75;
-      white-space: pre-wrap;
+      #e8e8e8-space: pre-wrap;
       color: var(--text);
     }
 
@@ -240,7 +240,7 @@
       color: var(--muted);
       text-align: center;
       line-height: 1.65;
-      white-space: pre-line;
+      #e8e8e8-space: pre-line;
     }
 
     @media screen {
@@ -262,21 +262,21 @@
             transparent calc(281mm - 2px),
             rgba(80, 80, 200, 0.7) calc(281mm - 2px),
             rgba(80, 80, 200, 0.7) 281mm,
-            rgba(232, 232, 240, 0.88) 281mm,
-            rgba(232, 232, 240, 0.88) 297mm,
+            #e8e8e8 281mm,
+            #e8e8e8 297mm,
             transparent 297mm
           ),
           /* Pages 2+: top margin zone + break line + footer zone, tiled every 297mm */
           linear-gradient(
             to bottom,
-            rgba(232, 232, 240, 0.88) 0,
-            rgba(232, 232, 240, 0.88) 16mm,
+            #e8e8e8 0,
+            #e8e8e8 16mm,
             transparent 16mm,
             transparent calc(281mm - 2px),
             rgba(80, 80, 200, 0.7) calc(281mm - 2px),
             rgba(80, 80, 200, 0.7) 281mm,
-            rgba(232, 232, 240, 0.88) 281mm,
-            rgba(232, 232, 240, 0.88) 297mm
+            #e8e8e8 281mm,
+            #e8e8e8 297mm
           );
         background-size: 100% auto, 100% 297mm;
         background-position: 0 0, 0 297mm;
@@ -432,5 +432,43 @@
   </div>
 
 </div>
+<script>
+(function () {
+  var PX         = 96 / 25.4;
+  var PAGE1_BREAK = Math.round(281 * PX); // content ends at 281mm on page 1
+  var PAGE_H      = Math.round(297 * PX); // full page height = interval between breaks
+  var GAP_H       = Math.round(32  * PX); // 16mm footer + 16mm top margin
+
+  var page = document.querySelector('.page');
+  if (!page) return;
+
+  var pageTop  = page.getBoundingClientRect().top;
+  var children = Array.from(page.children);
+  var tops     = children.map(function (c) {
+    return Math.round(c.getBoundingClientRect().top - pageTop);
+  });
+
+  var spacers    = [];
+  var cumulative = 0;
+  var nextBreak  = PAGE1_BREAK;
+
+  for (var i = 0; i < tops.length; i++) {
+    var adjTop = tops[i] + cumulative;
+    while (adjTop >= nextBreak) {
+      var h = Math.max(0, nextBreak + GAP_H - adjTop);
+      spacers.push({ before: i, height: h });
+      cumulative += h;
+      nextBreak  += PAGE_H;
+      adjTop = tops[i] + cumulative;
+    }
+  }
+
+  spacers.reverse().forEach(function (s) {
+    var sp = document.createElement('div');
+    sp.style.cssText = 'display:block;height:' + s.height + 'px;flex-shrink:0;';
+    page.insertBefore(sp, children[s.before]);
+  });
+})();
+</script>
 </body>
 </html>
