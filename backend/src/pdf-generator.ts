@@ -543,7 +543,7 @@ async function htmlToPdf(html: string): Promise<Buffer> {
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
-      margin: { top: '0', right: '0', bottom: '0', left: '0' },
+      margin: { top: '16mm', right: '0', bottom: '0', left: '0' },
     });
     return Buffer.from(pdfBuffer);
   } finally {
