@@ -12,7 +12,7 @@ export interface InvoiceTemplate {
   logoDataUrl?: string;    // base64 data URL (PNG or JPEG)
   headerText?: string;     // tagline shown in the top-left header area
   footerText?: string;     // bottom footer line
-  font?: 'sans' | 'serif' | 'mono';
+  font?: string;
   accentColor?: string;    // hex color, e.g. '#2563EB'
 }
 
@@ -395,9 +395,19 @@ function getTemplate(): Handlebars.TemplateDelegate {
 }
 
 const FONT_FAMILIES: Record<string, string> = {
-  sans:  '"DejaVu Sans", Arial, Helvetica, sans-serif',
-  serif: '"DejaVu Serif", Georgia, "Times New Roman", serif',
-  mono:  '"DejaVu Sans Mono", "Courier New", Courier, monospace',
+  sans:          '"DejaVu Sans", Arial, Helvetica, sans-serif',
+  serif:         '"DejaVu Serif", Georgia, "Times New Roman", serif',
+  mono:          '"DejaVu Sans Mono", "Courier New", Courier, monospace',
+  inter:         '"Inter", sans-serif',
+  roboto:        '"Roboto", sans-serif',
+  'open-sans':   '"Open Sans", sans-serif',
+  lato:          '"Lato", sans-serif',
+  montserrat:    '"Montserrat", sans-serif',
+  poppins:       '"Poppins", sans-serif',
+  'source-sans': '"Source Sans 3", sans-serif',
+  raleway:       '"Raleway", sans-serif',
+  merriweather:  '"Merriweather", serif',
+  playfair:      '"Playfair Display", serif',
 };
 
 const TYPE_LABELS: Record<string, string> = {

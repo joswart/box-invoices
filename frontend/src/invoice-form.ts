@@ -18,7 +18,7 @@ export interface InvoiceTemplate {
   logoDataUrl: string;
   headerText: string;
   footerText: string;
-  font: 'sans' | 'serif' | 'mono';
+  font: string;
   accentColor: string;
 }
 
@@ -431,9 +431,19 @@ export function renderPreview(data: InvoiceFormData, template?: InvoiceTemplate)
 
 function buildTemplateFormHtml(t: InvoiceTemplate): string {
   const fontOpts: [string, string][] = [
-    ['sans', 'Sans-serif (default)'],
-    ['serif', 'Serif'],
-    ['mono', 'Monospace'],
+    ['sans',        'DejaVu Sans (default)'],
+    ['serif',       'DejaVu Serif'],
+    ['mono',        'DejaVu Mono'],
+    ['inter',       'Inter'],
+    ['roboto',      'Roboto'],
+    ['open-sans',   'Open Sans'],
+    ['lato',        'Lato'],
+    ['montserrat',  'Montserrat'],
+    ['poppins',     'Poppins'],
+    ['source-sans', 'Source Sans 3'],
+    ['raleway',     'Raleway'],
+    ['merriweather','Merriweather'],
+    ['playfair',    'Playfair Display'],
   ];
   const fontSelect = fontOpts.map(([v, label]) =>
     `<option value="${v}"${v === t.font ? ' selected' : ''}>${esc(label)}</option>`
@@ -648,9 +658,19 @@ async function refreshTemplateFromBackend(): Promise<void> {
 }
 
 const _FONT_FAMILIES: Record<string, string> = {
-  sans:  '"DejaVu Sans", Arial, Helvetica, sans-serif',
-  serif: '"DejaVu Serif", Georgia, "Times New Roman", serif',
-  mono:  '"DejaVu Sans Mono", "Courier New", Courier, monospace',
+  sans:          '"DejaVu Sans", Arial, Helvetica, sans-serif',
+  serif:         '"DejaVu Serif", Georgia, "Times New Roman", serif',
+  mono:          '"DejaVu Sans Mono", "Courier New", Courier, monospace',
+  inter:         '"Inter", sans-serif',
+  roboto:        '"Roboto", sans-serif',
+  'open-sans':   '"Open Sans", sans-serif',
+  lato:          '"Lato", sans-serif',
+  montserrat:    '"Montserrat", sans-serif',
+  poppins:       '"Poppins", sans-serif',
+  'source-sans': '"Source Sans 3", sans-serif',
+  raleway:       '"Raleway", sans-serif',
+  merriweather:  '"Merriweather", serif',
+  playfair:      '"Playfair Display", serif',
 };
 
 const _TYPE_LABELS: Record<string, string> = {
