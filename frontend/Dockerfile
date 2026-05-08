@@ -12,6 +12,11 @@ RUN cd frontend && npm ci
 COPY frontend/tsconfig.json ./frontend/
 COPY frontend/src             ./frontend/src
 
+# Copy static assets and nginx config into the build stage so the runtime stage
+# can use --from=build exclusively (avoids BuildKit context resolution issues).
+COPY frontend/public         ./frontend/public
+COPY frontend/nginx.conf     ./frontend/nginx.conf
+
 # Copy the invoice template — shared by backend (PDF) and frontend (preview)
 COPY backend/templates        ./backend/templates
 
@@ -19,6 +24,6 @@ RUN cd frontend && npm run build
 
 # ---- runtime ----
 FROM nginx:1.27-alpine
-COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
-COPY frontend/public     /usr/share/nginx/html
-COPY --from=build /app/frontend/dist/app.js /usr/share/nginx/html/app.js
+COPY --from=build /app/frontend/nginx.conf   /etc/nginx/conf.d/default.conf
+COPY --from=build /app/frontend/public       /usr/share/nginx/html
+COPY --from=build /app/frontend/dist/app.js  /usr/share/nginx/html/app.js
