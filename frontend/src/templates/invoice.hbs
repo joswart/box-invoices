@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <style>
-    @page        { size: A4; }
-    @page :first { margin-top: 0; }
+    @page { size: A4; }
 
     /* Screen-only overrides (ignored by Puppeteer's print mode) */
     @media screen {
@@ -245,18 +244,11 @@
     }
 
     @media print {
-      .footer {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        margin-top: 0;
-        padding: 3mm 20mm 4mm 25mm;
-        background: white;
-      }
+      .footer { display: none; }
 
       .page {
-        padding-bottom: 16mm;
+        padding-top: 1mm;
+        padding-bottom: 0;
       }
     }
   </style>

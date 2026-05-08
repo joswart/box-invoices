@@ -429,13 +429,16 @@ function buildTemplateContext(data: InvoiceFormData, template?: InvoiceTemplate)
   const fmt = (n: number) =>
     n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + currency;
 
+  const profile    = (data.profile || 'en16931').toUpperCase().replace('EN16931', 'EN 16931');
+  const footerText = template?.footerText || `PDF/A-3b · Factur-X 1.0 · ${profile} · Eingebettetes XML`;
+
   return {
     // Visual settings
     accentColor: template?.accentColor || '#2563EB',
     fontFamily:  FONT_FAMILIES[template?.font || 'sans'],
     logoDataUrl: template?.logoDataUrl  || '',
     headerText:  template?.headerText   || '',
-    footerText:  template?.footerText   || '',
+    footerText,
 
     // Invoice meta
     invoiceNumber: data.invoiceNumber || 'ENTWURF',
@@ -443,7 +446,7 @@ function buildTemplateContext(data: InvoiceFormData, template?: InvoiceTemplate)
     dueDate:       formatGermanDate(data.dueDate),
     typeLabel:     TYPE_LABELS[data.invoiceType] ?? 'Rechnung',
     currency,
-    profile: (data.profile || 'en16931').toUpperCase().replace('EN16931', 'EN 16931'),
+    profile,
 
     // Seller
     sellerName:        data.sellerName,
@@ -535,15 +538,23 @@ function getBrowser(): Promise<Browser> {
   return _browserPromise;
 }
 
-async function htmlToPdf(html: string): Promise<Buffer> {
+async function htmlToPdf(html: string, footerText: string): Promise<Buffer> {
   const browser = await getBrowser();
   const page = await browser.newPage();
   try {
     await page.setContent(html, { waitUntil: 'load' });
+    const escapedFooter = footerText
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br>');
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
-      margin: { top: '16mm', right: '0', bottom: '0', left: '0' },
+      displayHeaderFooter: true,
+      headerTemplate: '<span></span>',
+      footerTemplate: `<div style="width:100%;font-family:DejaVu Sans,Arial,sans-serif;font-size:7.5pt;color:#666;text-align:center;line-height:1.65;padding:3mm 20mm 4mm 25mm;border-top:0.5pt solid #ddd;box-sizing:border-box;">${escapedFooter}</div>`,
+      margin: { top: '16mm', right: '0', bottom: '16mm', left: '0' },
     });
     return Buffer.from(pdfBuffer);
   } finally {
@@ -620,8 +631,10 @@ export async function generateZugferdPdf(data: InvoiceFormData, template?: Invoi
   };
   const conformanceLevel = conformanceLevels[data.profile] ?? 'EN 16931';
 
-  const html      = renderInvoiceHtml(data, template);
-  const pdfBuffer = await htmlToPdf(html);
+  const html       = renderInvoiceHtml(data, template);
+  const profile    = (data.profile || 'en16931').toUpperCase().replace('EN16931', 'EN 16931');
+  const footerText = template?.footerText || `PDF/A-3b · Factur-X 1.0 · ${profile} · Eingebettetes XML`;
+  const pdfBuffer  = await htmlToPdf(html, footerText);
 
   return attachZugferdXml(pdfBuffer, xmlBytes, conformanceLevel);
 }
