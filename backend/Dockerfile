@@ -7,6 +7,7 @@ ENV PUPPETEER_SKIP_DOWNLOAD=true
 RUN npm ci
 COPY tsconfig.json ./
 COPY src ./src
+COPY templates ./templates
 RUN npm run build
 
 # ---- runtime ----
@@ -31,7 +32,7 @@ COPY package*.json ./
 RUN npm ci --production
 
 COPY --from=build /app/dist ./dist
-COPY templates ./templates
+COPY --from=build /app/templates ./templates
 
 USER node
 CMD ["node", "dist/server.js"]
