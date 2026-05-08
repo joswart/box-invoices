@@ -16,7 +16,6 @@ COPY frontend/src             ./frontend/src
 # can use --from=build exclusively (avoids BuildKit context resolution issues).
 COPY frontend/public         ./frontend/public
 COPY frontend/nginx.conf     ./frontend/nginx.conf
-COPY frontend/templates      ./frontend/templates
 
 RUN cd frontend && npm run build
 
