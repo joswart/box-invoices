@@ -244,7 +244,7 @@
     }
 
     @media screen {
-      .page { position: relative; }
+      .page { position: relative; isolation: isolate; }
     }
 
     @media print {
@@ -410,8 +410,9 @@
   var children = Array.from(page.children);
   var tops     = children.map(function (c) { return c.offsetTop; });
 
-  // Compute spacers: push any element that either starts at/past a break OR
-  // spans across it (starts before, ends after) to the start of the next page.
+  // Compute spacers: push elements whose top lands at or past a break zone.
+  // Elements that merely span a break stay in place — the overlay covers the
+  // portion in the margin zone.
   var spacers    = [];
   var cumulative = 0;
   var nextBreak  = PAGE1_BREAK;
@@ -420,15 +421,18 @@
     var adjTop    = tops[i] + cumulative;
     var adjBottom = tops[i] + children[i].offsetHeight + cumulative;
 
-    if (adjTop >= nextBreak || adjBottom > nextBreak) {
+    if (adjTop >= nextBreak) {
       var h = Math.max(0, nextBreak + GAP_H - adjTop);
       if (h > 0) {
         spacers.push({ before: i, height: h });
         cumulative += h;
       }
       nextBreak += PAGE_H;
-      // Advance past all breaks contained within this element
-      var newBottom = adjBottom + h;
+    } else if (adjBottom > nextBreak) {
+      // Element spans the break — advance nextBreak so subsequent elements
+      // are calculated correctly, but don't push this element.
+      nextBreak += PAGE_H;
+      var newBottom = adjBottom;
       while (newBottom > nextBreak) nextBreak += PAGE_H;
     }
   }
