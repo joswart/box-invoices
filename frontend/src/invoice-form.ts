@@ -1,6 +1,6 @@
 import { parseImportFile, downloadCsvTemplate, downloadExcelTemplate } from './invoice-import';
 import Handlebars from 'handlebars';
-import invoiceTemplateSource from '../../backend/templates/invoice.hbs';
+import invoiceTemplateSource from '../templates/invoice.hbs';
 
 // ============================================================
 // Types

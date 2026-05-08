@@ -16,9 +16,7 @@ COPY frontend/src             ./frontend/src
 # can use --from=build exclusively (avoids BuildKit context resolution issues).
 COPY frontend/public         ./frontend/public
 COPY frontend/nginx.conf     ./frontend/nginx.conf
-
-# Copy the invoice template — shared by backend (PDF) and frontend (preview)
-COPY backend/templates        ./backend/templates
+COPY frontend/templates      ./frontend/templates
 
 RUN cd frontend && npm run build
 
