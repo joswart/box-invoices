@@ -243,8 +243,19 @@
       white-space: pre-line;
     }
 
+    .page-break {
+      position: absolute;
+      left: 0; right: 0;
+      height: 12px;
+      pointer-events: none;
+      z-index: 999;
+      background: linear-gradient(to bottom, rgba(180,180,210,0.25) 0, transparent 100%);
+      border-top: 1.5px dashed rgba(130,130,180,0.55);
+    }
+
     @media print {
       .footer { display: none; }
+      .page-break { display: none; }
 
       .page {
         padding-top: 1mm;
@@ -391,5 +402,21 @@
   </div>
 
 </div>
+<script>
+(function () {
+  var PX_PER_MM = 96 / 25.4;
+  var pageHeightPx = 297 * PX_PER_MM;
+  var page = document.querySelector('.page');
+  if (!page) return;
+  page.style.position = 'relative';
+  var totalHeight = page.scrollHeight;
+  for (var y = pageHeightPx; y < totalHeight; y += pageHeightPx) {
+    var marker = document.createElement('div');
+    marker.className = 'page-break';
+    marker.style.top = Math.round(y) + 'px';
+    page.appendChild(marker);
+  }
+})();
+</script>
 </body>
 </html>
